@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>أسطورة ميكو – RPG ثلاثية الأبعاد</title>
+<style>
+:root{--p:#ff6fb1;--bg:#1a1030;box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:Tahoma,Arial,sans-serif;color:#fff;user-select:none;touch-action:none}
+canvas{display:block}
+#hud{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));inset-inline:8px;display:flex;justify-content:space-between;pointer-events:none;gap:8px}
+.pn{background:#0009;border:2px solid var(--p);border-radius:12px;padding:8px 10px;font-size:13px;min-width:150px}
+.bar{height:9px;background:#0008;border-radius:5px;margin:3px 0;overflow:hidden}.bar i{display:block;height:100%;width:100%}
+#dlg{position:fixed;bottom:150px;left:50%;transform:translateX(-50%);width:min(520px,92vw);background:#1a1030ee;border:2px solid var(--p);border-radius:14px;padding:12px;display:none;font-size:15px;line-height:1.7}
+.dn{position:fixed;font-weight:700;font-size:20px;pointer-events:none;text-shadow:0 0 4px #000;transition:all .8s;z-index:3}
+#ov{position:fixed;inset:0;background:#000b;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:20px}
+#ov h1{color:var(--p);font-size:34px;margin:0}
+#ov button{background:var(--p);color:#fff;border:0;border-radius:14px;padding:12px 30px;font-size:20px;font-weight:700}
+#btns{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom,0px));inset-inline-end:10px;display:grid;grid-template-columns:repeat(2,64px);gap:8px;direction:ltr}
+#btns button{height:64px;border-radius:50%;border:2px solid #fff8;background:#ff6fb1cc;color:#fff;font-size:13px;font-weight:700;touch-action:none}
+#joy{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));inset-inline-start:16px;width:120px;height:120px;border-radius:50%;background:#fff3;border:2px solid #fff6;touch-action:none;direction:ltr}
+#kn{position:absolute;left:40px;top:40px;width:40px;height:40px;border-radius:50%;background:#fffc}
+#tip{position:fixed;bottom:4px;width:100%;text-align:center;font-size:11px;opacity:.6;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="hud"><div class="pn"><b id="lv"></b><div class="bar"><i id="hp" style="background:#ff4f7b"></i></div><div class="bar"><i id="mp" style="background:#4fc3ff"></i></div><div class="bar"><i id="xp" style="background:#ffd54a"></i></div></div><div class="pn" id="qs"></div></div>
+<div id="dlg"></div>
+<div id="joy"><div id="kn"></div></div>
+<div id="btns"><button data-k="KeyK">🔥<br>نار</button><button data-k="KeyJ">⚔<br>سيف</button><button data-k="KeyL">💨<br>اندفاع</button><button data-k="KeyE">💬<br>تحدث</button></div>
+<div id="tip">WASD حركة · السحب بالماوس للكاميرا · J سيف · K نار · L اندفاع · E تحدث</div>
+<div id="ov"><h1>🌸 أسطورة ميكو 🌸</h1><div>مغامرة RPG ثلاثية الأبعاد · قاتلي الوحوش، طوّري قوتك، واهزمي زعماء كل فصل</div><button id="go">ابدأ المغامرة</button></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const T=THREE,M=Math,R=M.random,$=id=>document.getElementById(id);
+const sc=new T.Scene(),cam=new T.PerspectiveCamera(60,1,.1,300),rd=new T.WebGLRenderer({antialias:true});
+rd.setPixelRatio(M.min(devicePixelRatio,2));document.body.prepend(rd.domElement);
+sc.background=new T.Color(0xffb7d5);sc.fog=new T.Fog(0xffb7d5,40,120);
+function rs(){rd.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}addEventListener('resize',rs);rs();
+sc.add(new T.HemisphereLight(0xfff0ff,0x6a8a6a,.9));const sun=new T.DirectionalLight(0xffffff,.8);sun.position.set(30,50,20);sc.add(sun);
+const gm=new T.DataTexture(new Uint8Array([100,180,255]),3,1,T.LuminanceFormat);gm.minFilter=gm.magFilter=T.NearestFilter;gm.needsUpdate=true;
+function mk(g,col,p,x=0,y=0,z=0,ol=1){const m=new T.Mesh(g,new T.MeshToonMaterial({color:col,gradientMap:gm}));m.position.set(x,y,z);if(ol){const o=new T.Mesh(g,new T.MeshBasicMaterial({color:0x1a0a2a,side:T.BackSide}));o.scale.setScalar(1.06);m.add(o)}if(p)p.add(m);return m}
+const SP=(r)=>new T.SphereGeometry(r,16,12),CY=(a,b,h)=>new T.CylinderGeometry(a,b,h,12),CO=(r,h)=>new T.ConeGeometry(r,h,12);
+// world
+const gr=mk(new T.CircleGeometry(110,48),0x74d68f,sc,0,0,0,0);gr.rotation.x=-M.PI/2;
+mk(new T.SphereGeometry(8,16,8),0xfff2b0,sc,-60,45,-90,0);
+for(let i=0;i<14;i++){const cl=new T.Group();for(let j=0;j<4;j++)mk(SP(4+R()*3),0xffffff,cl,j*4,R()*2,R()*2,0);cl.position.set(R()*200-100,35+R()*15,R()*-150);sc.add(cl)}
+const solid=[];
+function tree(x,z,sk){const g=new T.Group();mk(CY(.4,.5,3),0x7a4a2a,g,0,1.5,0);if(sk){mk(SP(2.4),0xffa6cf,g,0,4.2,0);mk(SP(1.7),0xffc2de,g,1.2,3.4,.6)}else{mk(CO(2.4,3.5),0x2f9a5a,g,0,4,0);mk(CO(1.9,3),0x38ad66,g,0,5.6,0)}g.position.set(x,0,z);sc.add(g);solid.push([x,z,1])}
+for(let i=0;i<90;i++){const a=R()*6.28,r=16+R()*85;tree(M.cos(a)*r,M.sin(a)*r,R()<.4)}
+for(let i=0;i<30;i++){const a=R()*6.28,r=10+R()*90;mk(new T.DodecahedronGeometry(.6+R()*.8),0x9a9ab0,sc,M.cos(a)*r,.4,M.sin(a)*r)}
+for(let i=0;i<5;i++){const a=i*1.256,hx=M.cos(a)*9,hz=M.sin(a)*9-2,h=new T.Group();mk(new T.BoxGeometry(4,2.6,4),0xfff0e0,h,0,1.3,0);const rf=mk(CO(3.6,2),0xd9486a,h,0,3.6,0);rf.rotation.y=M.PI/4;h.position.set(hx,0,hz);sc.add(h);solid.push([hx,hz,2.8])}
+const tori=new T.Group();mk(CY(.3,.3,5),0xd9203a,tori,-2,2.5,0);mk(CY(.3,.3,5),0xd9203a,tori,2,2.5,0);mk(new T.BoxGeometry(6,.5,.6),0xd9203a,tori,0,5,0);mk(new T.BoxGeometry(4.5,.35,.4),0xd9203a,tori,0,4,0);tori.position.set(0,0,-14);sc.add(tori);
+const pet=new T.BufferGeometry(),pa=new Float32Array(900);for(let i=0;i<900;i+=3){pa[i]=R()*80-40;pa[i+1]=R()*20;pa[i+2]=R()*80-40}pet.setAttribute('position',new T.BufferAttribute(pa,3));const pts=new T.Points(pet,new T.PointsMaterial({color:0xff9ec8,size:.35}));sc.add(pts);
+// hero
+const hero=new T.Group();sc.add(hero);
+const body=mk(CY(.32,.45,.9),0x6a4cff,hero,0,.75,0),skirt=mk(CY(.45,.75,.45),0xffffff,hero,0,.4,0);
+const cape=mk(new T.BoxGeometry(.7,.9,.05),0xff3d7a,hero,0,.85,-.42);
+const head=mk(SP(.4),0xffe3d0,hero,0,1.55,0);
+const hair=mk(new T.SphereGeometry(.44,16,12,0,6.28,0,1.9),0x35e0d0,hero,0,1.6,-.04);
+mk(new T.BoxGeometry(.7,.14,.14),0x35e0d0,hero,0,1.76,.3);
+const tails=[-1,1].map(s=>{const g=new T.Group();g.position.set(s*.42,1.7,-.1);hero.add(g);mk(CY(.1,.04,.9),0x35e0d0,g,0,-.45,0);return g});
+[-1,1].forEach(s=>{mk(SP(.1),0xffffff,hero,s*.15,1.54,.38,0).scale.set(1,1.4,.4);mk(SP(.065),0xb04cff,hero,s*.15,1.54,.41,0).scale.set(1,1.5,.4);mk(SP(.04),0x1a0a40,hero,s*.15,1.54,.43,0)});
+mk(new T.TorusGeometry(.1,.03,6,10,3),0xb07070,hero,0,1.38,.4,0).rotation.z=M.PI*1.5-.3;
+const legs=[-1,1].map(s=>mk(CY(.1,.1,.5),0x2a2a6a,hero,s*.18,.2,0));
+const swG=new T.Group();swG.position.set(.55,.9,.1);hero.add(swG);mk(new T.BoxGeometry(.09,1.3,.03),0xe8f4ff,swG,0,.75,0);mk(new T.BoxGeometry(.3,.07,.07),0xffd54a,swG,0,.1,0);mk(CY(.04,.04,.3),0x8a2a2a,swG,0,-.05,0);
+const sh=mk(new T.CircleGeometry(.7,16),0x000000,sc,0,.03,0,0);sh.rotation.x=-M.PI/2;sh.material=new T.MeshBasicMaterial({color:0,transparent:true,opacity:.3});
+const P={x:0,z:6,f:0,lv:1,xp:0,hp:100,mh:100,mp:60,mm:60,atk:10,sw:0,cb:0,cd:0,dd:0,inv:0,dx:0,dz:0};
+// npc
+const npc=new T.Group();mk(CY(.4,.55,1.2),0x8a5cd6,npc,0,.7,0);mk(SP(.38),0xffe3d0,npc,0,1.6,0);mk(SP(.42),0xeeeeee,npc,0,1.7,-.1);const ex=mk(SP(.2),0xffd54a,npc,0,3,0);npc.position.set(4,0,-4);sc.add(npc);
+// state
+let ch=1,q=0,kills=0,E=[],FX=[],PR=[],bossOn=false,yaw=0,pit=.45,dead=0;
+const need=()=>3+ch*2,eN=()=>({lv:ch});
+function enemy(boss){const g=new T.Group(),col=boss?0x4a1060:[0x5ad6ff,0xff9a5a,0xb06aff,0xff5a8a][(ch-1)%4];
+const b=mk(SP(boss?2.2:.8),col,g,0,boss?2.2:.6,0);b.scale.y=.8;[-1,1].forEach(s=>{const k=boss?2.2:1;mk(SP(.14*k),0xffffff,g,s*.3*k,.8*k+(boss?.4:0),.65*k,0);mk(SP(.07*k),boss?0xff2020:0x1a0a30,g,s*.3*k,.8*k+(boss?.4:0),.78*k,0);if(boss)mk(CO(.5,1.6),0x2a0a3a,g,s*1.2,4.2,0)});
+const bg=new T.Mesh(new T.PlaneGeometry(1.6,.16),new T.MeshBasicMaterial({color:0x300010}));bg.position.y=boss?5:1.8;const fg=new T.Mesh(new T.PlaneGeometry(1.6,.16),new T.MeshBasicMaterial({color:0xff4f7b}));fg.position.z=.01;bg.add(fg);g.add(bg);
+let x,z;do{const a=R()*6.28,r=boss?60:20+R()*60;x=M.cos(a)*r;z=M.sin(a)*r}while(M.hypot(x,z)<18);if(boss){x=0;z=-60}
+g.position.set(x,0,z);sc.add(g);const hp=boss?70+ch*60:5+ch*4;E.push({g,bg,fg,x,z,hp,mh:hp,boss,cd:1,vx:0,vz:0,ph:R()*6,dm:boss?10+ch*5:3+ch*2,xp:boss?80+ch*40:10+ch*4})}
+function fx(x,y,z,col,n=8){for(let i=0;i<n;i++){const m=mk(SP(.08),col,sc,x,y,z,0);FX.push({m,vx:R()*6-3,vy:R()*5,vz:R()*6-3,l:.5})}}
+function dn(x,y,z,txt,col){const v=new T.Vector3(x,y,z).project(cam);if(v.z>1)return;const d=document.createElement('div');d.className='dn';d.textContent=txt;d.style.color=col;d.style.left=(v.x*.5+.5)*innerWidth+'px';d.style.top=(-v.y*.5+.5)*innerHeight+'px';document.body.appendChild(d);requestAnimationFrame(()=>{d.style.top=parseFloat(d.style.top)-50+'px';d.style.opacity=0});setTimeout(()=>d.remove(),850)}
+for(let i=0;i<9;i++)enemy(0);
+// audio
+let ac,stp=0;const sc5=[0,2,4,7,9],mel=[0,2,4,2,3,2,1,0,2,4,3,4,2,1,0,1];
+function tone(f,d,ty,v,at){const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(v,at);g.gain.exponentialRampToValueAtTime(.001,at+d);o.connect(g);g.connect(ac.destination);o.start(at);o.stop(at+d)}
+function sfx(f,d,ty='square',v=.05){if(ac)tone(f,d,ty,v,ac.currentTime)}
+function music(){if(!ac)return;const at=ac.currentTime+.02,i=stp%16,r=[0,-3,-5,-2][M.floor(stp/16)%4],fr=n=>262*M.pow(2,n/12);tone(fr(r+sc5[mel[i]%5]+(mel[i]>4?12:0)),.4,'triangle',.07,at);if(i%4==0)tone(fr(r-12),.6,'sine',.12,at);if(i%8==4)tone(fr(r+sc5[2]),.5,'sine',.05,at);stp++}
+// input
+const keys={};let jx=0,jy=0,talking=false;
+addEventListener('keydown',e=>{if(!keys[e.code])act(e.code);keys[e.code]=1});addEventListener('keyup',e=>keys[e.code]=0);
+document.querySelectorAll('#btns button').forEach(b=>b.onpointerdown=e=>{e.preventDefault();act(b.dataset.k)});
+let dr=0,lx=0;rd.domElement.onpointerdown=e=>{dr=1;lx=e.clientX;ly=e.clientY};var ly=0;addEventListener('pointerup',()=>dr=0);
+addEventListener('pointermove',e=>{if(dr){yaw-=(e.clientX-lx)*.006;pit=M.max(.15,M.min(1.1,pit+(e.clientY-ly)*.004));lx=e.clientX;ly=e.clientY}});
+const joy=$('joy'),kn=$('kn');let jd=0;joy.onpointerdown=e=>{jd=1;joy.setPointerCapture(e.pointerId);jm(e)};joy.onpointermove=e=>jd&&jm(e);joy.onpointerup=()=>{jd=0;jx=jy=0;kn.style.left=kn.style.top='40px'};
+function jm(e){const r=joy.getBoundingClientRect();let dx=(e.clientX-r.left-60)/50,dy=(e.clientY-r.top-60)/50,l=M.hypot(dx,dy);if(l>1){dx/=l;dy/=l}jx=dx;jy=-dy;kn.style.left=40+dx*40+'px';kn.style.top=40+dy*40+'px'}
+let started=false;$('go').onclick=()=>{started=true;$('ov').style.display='none';ac=new(window.AudioContext||window.webkitAudioContext)();setInterval(music,230);ac.resume()};
+function near(){let b=null,bd=99;for(const e of E){const d=M.hypot(e.x-P.x,e.z-P.z);if(d<bd){bd=d;b=e}}return[b,bd]}
+function act(k){if(!started)return;if(talking&&k=='KeyE'){talk();return}
+if(k=='KeyJ'&&P.sw<=0){const[b,d]=near();if(b&&d<6)P.f=M.atan2(b.x-P.x,b.z-P.z);P.sw=.35;P.cb=(P.cb+1)%3;sfx(300+P.cb*80,.15,'sawtooth');const fx0=M.sin(P.f),fz0=M.cos(P.f);for(const e of E){const dx=e.x-P.x,dz=e.z-P.z,dd=M.hypot(dx,dz);if(dd<(e.boss?5.5:3.4)&&(dx*fx0+dz*fz0)/dd>.2)hit(e,P.atk*(P.cb==2?1.8:1),dx/dd*8,dz/dd*8)}}
+if(k=='KeyK'&&P.mp>=20){P.mp-=20;PR.push({m:mk(SP(.5),0xff7a2a,sc,P.x,1.2,P.z,0),vx:M.sin(P.f)*18,vz:M.cos(P.f)*18,l:1.4});sfx(180,.3,'sawtooth',.08)}
+if(k=='KeyL'&&P.dd<=0){P.dd=.2;P.inv=.4;P.dx=M.sin(P.f)*22;P.dz=M.cos(P.f)*22;sfx(700,.1,'triangle')}
+if(k=='KeyE'&&M.hypot(npc.position.x-P.x,npc.position.z-P.z)<5){talking=true;talk(1)}}
+function hit(e,d,kx,kz){d=M.round(d);e.hp-=d;e.vx=kx;e.vz=kz;fx(e.x,1,e.z,0xff9ad0);dn(e.x,2.5,e.z,d,'#ffe14a');sfx(200,.08);if(e.hp<=0&&!e.dead){e.dead=1;sc.remove(e.g);fx(e.x,1,e.z,0xb388ff,20);gain(e.xp);if(e.boss){q=4;bossOn=false}else{kills++;if(q==1&&kills>=need())q=2;setTimeout(()=>enemy(0),4000)}sfx(110,.3,'sawtooth')}}
+function gain(x){P.xp+=x;dn(P.x,3,P.z,'+'+x+' XP','#7af0ff');while(P.xp>=P.lv*30+20){P.xp-=P.lv*30+20;P.lv++;P.mh+=15;P.mm+=8;P.atk+=3;P.hp=P.mh;P.mp=P.mm;dn(P.x,3.6,P.z,'⬆ مستوى '+P.lv+'!','#ffd54a');fx(P.x,1,P.z,0xffd54a,25);sfx(880,.5,'triangle',.1)}}
+function talk(s){const d=$('dlg');let m;if(s&&q==0){m=`🧙 الحكيم: أهلاً يا ميكو! وحوش الظلال غزت الأراضي. اهزمي ${need()} وحوش في الفصل ${ch}.`;q=1;kills=0}else if(s&&q==1)m=`🧙 الحكيم: ما زال أمامك ${need()-kills} وحوش. استعملي السيف (J) والنار (K)!`;else if(s&&q==2){m='🧙 الحكيم: ممتاز! الآن زعيم الظلال ظهر في الشمال خلف بوابة التوري. اذهبي واهزميه!';q=3;enemy(1);bossOn=true}else if(s&&q==3)m='🧙 الحكيم: الزعيم ينتظر في الشمال... كوني حذرة واستعملي الاندفاع (L).';else if(s&&q==4){m=`🧙 الحكيم: لقد حررتِ الفصل ${ch}! لكن ظلالاً أقوى تظهر... جاهزة للفصل ${ch+1}؟`;ch++;q=0;kills=0;P.hp=P.mh;P.mp=P.mm;E.forEach(e=>sc.remove(e.g));E=[];for(let i=0;i<9;i++)enemy(0)}else{d.style.display='none';talking=false;return}
+d.style.display='block';d.textContent=m+'  [E]'}
+function hurt(d){if(P.inv>0)return;P.inv=.9;P.hp-=d;dn(P.x,2.6,P.z,'-'+d,'#ff4f7b');fx(P.x,1,P.z,0xff4060);sfx(100,.3,'sawtooth',.08);if(P.hp<=0){P.hp=P.mh;P.x=0;P.z=6;dead=2}}
+// loop
+let ck=new T.Clock(),t=0;
+function ang(a,b){let d=b-a;while(d>M.PI)d-=6.28;while(d<-M.PI)d+=6.28;return a+d*.2}
+function loop(){requestAnimationFrame(loop);const dt=M.min(.05,ck.getDelta());t+=dt;
+if(started){const ix=(keys.KeyD?1:0)-(keys.KeyA?1:0)+jx,iy=(keys.KeyW?1:0)-(keys.KeyS?1:0)+jy;if(keys.ArrowLeft)yaw+=dt*2;if(keys.ArrowRight)yaw-=dt*2;
+let mx=-M.sin(yaw)*iy+M.cos(yaw)*ix,mz=-M.cos(yaw)*iy-M.sin(yaw)*ix;const l=M.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
+P.dd-=dt;P.inv-=dt;P.sw-=dt;P.mp=M.min(P.mm,P.mp+3*dt);
+let vx=mx*7,vz=mz*7;if(P.dd>0){vx=P.dx;vz=P.dz}if(P.sw<=0&&l>.1&&P.dd<=0)P.f=ang(P.f,M.atan2(mx,mz));
+let nx=P.x+vx*dt,nz=P.z+vz*dt;for(const[sx,sz,r]of solid){if(M.hypot(nx-sx,nz-sz)<r+.5){const a=M.atan2(nx-sx,nz-sz);nx=sx+M.sin(a)*(r+.5);nz=sz+M.cos(a)*(r+.5)}}
+const rr=M.hypot(nx,nz);if(rr>95){nx*=95/rr;nz*=95/rr}P.x=nx;P.z=nz;
+hero.position.set(P.x,0,P.z);hero.rotation.y=P.f;sh.position.set(P.x,.03,P.z);const w=l>.1?M.sin(t*14)*.6:0;legs[0].rotation.x=w;legs[1].rotation.x=-w;
+tails.forEach((g,i)=>g.rotation.x=.2+M.sin(t*6+i)*.2+l*.4);cape.rotation.x=.2+l*.5+M.sin(t*8)*.08;hero.position.y=M.abs(w)*.06;
+swG.rotation.x=P.sw>0?(-2.2+(1-P.sw/.35)*3.4):-.4;swG.rotation.z=P.cb==1?.6:-.1;hero.visible=!(P.inv>0&&M.floor(t*20)%2);
+const dd=M.hypot(npc.position.x-P.x,npc.position.z-P.z);ex.visible=(q==0||q==2||q==4);ex.position.y=3+M.sin(t*4)*.2;if(talking&&dd>7){talking=false;$('dlg').style.display='none'}
+for(const e of E){if(e.dead)continue;e.ph+=dt;e.cd-=dt;const dx=P.x-e.x,dz=P.z-e.z,d=M.hypot(dx,dz),sp=(e.boss?4:2.6+ch*.2);
+if(d<(e.boss?40:16)&&d>(e.boss?4:1.5)){e.x+=dx/d*sp*dt;e.z+=dz/d*sp*dt}
+if(d<(e.boss?5:1.9)&&e.cd<=0){e.cd=e.boss?1.3:1.5;hurt(e.dm)}
+e.x+=e.vx*dt;e.z+=e.vz*dt;e.vx*=.9;e.vz*=.9;e.g.position.set(e.x,M.abs(M.sin(e.ph*4))*.4,e.z);e.g.rotation.y=M.atan2(dx,dz);e.bg.lookAt(cam.position);e.fg.scale.x=M.max(.01,e.hp/e.mh);e.fg.position.x=-.8*(1-e.fg.scale.x)}
+E=E.filter(e=>!e.dead);
+for(const p of PR){p.m.position.x+=p.vx*dt;p.m.position.z+=p.vz*dt;p.l-=dt;fx(p.m.position.x,1.2,p.m.position.z,0xffa040,1);for(const e of E)if(!e.dead&&!p.d&&M.hypot(e.x-p.m.position.x,e.z-p.m.position.z)<(e.boss?3:1.5)){p.d=1;hit(e,P.atk*2.5,p.vx*.4,p.vz*.4);fx(e.x,1,e.z,0xff7a2a,15)}if(p.l<=0||p.d)sc.remove(p.m)}
+PR=PR.filter(p=>p.l>0&&!p.d)}
+for(const f of FX){f.m.position.x+=f.vx*dt;f.m.position.y+=f.vy*dt;f.m.position.z+=f.vz*dt;f.vy-=12*dt;f.l-=dt;if(f.l<=0)sc.remove(f.m)}FX=FX.filter(f=>f.l>0);
+const pp=pet.attributes.position.array;for(let i=0;i<900;i+=3){pp[i+1]-=dt*1.5;pp[i]+=M.sin(t+i)*dt;if(pp[i+1]<0)pp[i+1]=20}pet.attributes.position.needsUpdate=true;pts.position.set(P.x,0,P.z);
+const cd=9;cam.position.lerp(new T.Vector3(P.x+M.sin(yaw)*cd*M.cos(pit),2+M.sin(pit)*cd,P.z+M.cos(yaw)*cd*M.cos(pit)),.15);cam.lookAt(P.x,1.6,P.z);
+$('hp').style.width=100*M.max(0,P.hp)/P.mh+'%';$('mp').style.width=100*P.mp/P.mm+'%';$('xp').style.width=100*P.xp/(P.lv*30+20)+'%';$('lv').textContent=`⭐ ميكو · مستوى ${P.lv} · الفصل ${ch}`;
+$('qs').innerHTML='📜 <b>المهمة</b><br>'+['تحدثي مع الحكيم (E)',`اقتلي الوحوش ${kills}/${need()}`,'عودي إلى الحكيم','اهزمي زعيم الظلال في الشمال ⬆','عودي إلى الحكيم للفصل التالي'][q];
+rd.render(sc,cam)}
+loop();
+</script>
+</body>
+</html>
